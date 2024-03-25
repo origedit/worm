@@ -16,3 +16,6 @@ ${rom}: ${tal} format
 clean:
 	rm -f .snarf .theme assets/.snarf
 
+push: clean
+	git push origin main
+
