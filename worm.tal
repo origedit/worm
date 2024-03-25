@@ -68,10 +68,11 @@
 		[ LIT2 03 -state ] LDZ NEQ ?{ <init>
 			BRK }
 		.Mouse/x DEI2 [ LIT2 &x $2 ] SUB2 .Mouse/y DEI2 [ LIT2 &y $2 ] SUB2 OVR2 abs2 OVR2 abs2 GTH2 [ LITr 03 ] ?{ SWP2 DUPr EORr }
-		POP2 POP #80 AND ?{
+		POP2 DUP2 #0003 GTH2 ?{ POPr !&no }
+		POP #80 AND ?{
 			[ LITr 02 ] ADDr [ LITr 03 ] ANDr }
 		STHr <dir> }
-	.Mouse/x DEI2 ,&x STR2
+	&no .Mouse/x DEI2 ,&x STR2
 	.Mouse/y DEI2 ,&y STR2
 	BRK
 
