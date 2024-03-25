@@ -1,6 +1,5 @@
 ( worm game )
 		( TO DO: )
-		( touch support )
 		( sound )
 		( food flickers. fix that )
 
@@ -34,6 +33,7 @@
 	;width .scale SFT2 .Screen/width DEO2
 	;height .scale SFT2 .Screen/height DEO2
 	;on-controller .Controller/vector DEO2
+	;on-mouse .Mouse/vector DEO2
 	<init-random>
 	<init>
 	BRK
@@ -65,6 +65,17 @@
 	&pause ( -> )
 		.state LDZk #01 EOR SWP STZ
 		BRK
+
+@on-mouse ( -> )
+	[ LIT &tap $1 ] [ LIT2 00 -Mouse/state ] DEI NEQ DUP ,&tap STR
+	#0101 NEQ2 ?{
+		.Mouse/x DEI2 [ LIT2 &x $2 ] SUB2 .Mouse/y DEI2 [ LIT2 &y $2 ] SUB2 OVR2 abs OVR2 abs GTH2 [ LITr 03 ] ?{ SWP2 DUPr EORr }
+		POP2 POP #80 AND ?{
+			[ LITr 02 ] ADDr [ LITr 03 ] ANDr }
+		STHr .dir/next STZ }
+	.Mouse/x DEI2 ,&x STR2
+	.Mouse/y DEI2 ,&y STR2
+	BRK
 
 @on-frame ( -> )
 	.state LDZ ?{
@@ -261,6 +272,10 @@
 	POP JMP2r
 	&negative ( x n -- x )
 		NIP #01 SUB JMP2r
+
+@abs ( x* -- |x|* )
+	OVR #80 AND ?{ JMP2r }
+	#0000 SWP2 SUB2 JMP2r
 
 @signedMUL ( a b -- a*b )
 	EORk #80 AND STH
