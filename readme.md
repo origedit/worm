@@ -8,7 +8,7 @@ uxnemu worm.rom
 ```
 
 ## controls
-- arrow keys to move.
+- swipe or use arrow keys to move.
 - Escape key to quit.
 - any other key to pause.
 
