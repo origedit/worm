@@ -47,16 +47,16 @@
 	( space ) [ LIT2 20 -Controller/key ] DEI EQU ?&pause
 	BRK
 	&up ( -> )
-		[ LIT2 00 -dir/next ] STZ
+		#00 <dir>
 		BRK
 	&down ( -> )
-		[ LIT2 02 -dir/next ] STZ
+		#02 <dir>
 		BRK
 	&left ( -> )
-		[ LIT2 03 -dir/next ] STZ
+		#03 <dir>
 		BRK
 	&right ( -> )
-		[ LIT2 01 -dir/next ] STZ
+		#01 <dir>
 		BRK
 	&pause ( -> )
 		.state LDZk #01 EOR SWP STZ
@@ -65,10 +65,12 @@
 @on-mouse ( -> )
 	[ LIT &tap $1 ] [ LIT2 00 -Mouse/state ] DEI NEQ DUP ,&tap STR
 	#0101 NEQ2 ?{
+		[ LIT2 03 -state ] LDZ NEQ ?{ <init>
+			BRK }
 		.Mouse/x DEI2 [ LIT2 &x $2 ] SUB2 .Mouse/y DEI2 [ LIT2 &y $2 ] SUB2 OVR2 abs2 OVR2 abs2 GTH2 [ LITr 03 ] ?{ SWP2 DUPr EORr }
 		POP2 POP #80 AND ?{
 			[ LITr 02 ] ADDr [ LITr 03 ] ANDr }
-		STHr .dir/next STZ }
+		STHr <dir> }
 	.Mouse/x DEI2 ,&x STR2
 	.Mouse/y DEI2 ,&y STR2
 	BRK
@@ -138,16 +140,23 @@
 		<new-food> }
 	JMP2r
 
+@<dir> ( dir -- )
+	DUP .dir LDZ EOR #02 NEQ ?{ POP JMP2r }
+	.dir/next STZ
+	JMP2r
+
 @<die> ( -> )
 	[ LIT2 03 -state ] STZ
 	;&frame .Screen/vector DEO2
-	#0000 .Controller/vector DEO2
+	#0000 DUP2 .Controller/vector DEO2
+	.Mouse/vector DEO2
 	[ LIT2 00 _&wait ] STR
 	BRK
 	&frame ( -> )
 		[ LIT2 20 &wait $1 ] INCk ,&wait STR
 		EQU [ JMP BRK ] #0000 .Screen/vector DEO2
 		;on-controller .Controller/vector DEO2
+		;on-mouse .Mouse/vector DEO2
 		BRK
 
 @<new-food> ( -- )
