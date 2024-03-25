@@ -1,0 +1,321 @@
+( worm game )
+		( TO DO: )
+		( touch support )
+		( sound )
+		( food flickers. fix that )
+
+|00 @System &vector $2 &expansion $2 &wst $1 &rst $1 &metadata $2 &r $2 &g $2 &b $2 &debug $1 &state $1
+|20 @Screen &vector $2 &width $2 &height $2 &auto $1 &pad $1 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1
+|80 @Controller &vector $2 &button $1 &key $1
+|90 @Mouse &vector $2 &x $2 &y $2 &state $1 &chord $1 &pad $4 &scrolly &scrolly-hb $1 &scrolly-lb $1
+|c0 @DateTime &year $2 &month $1 &day $1 &hour $1 &minute $1 &second $1 &dotw $1 &doty $2 &isdst $1
+|0014 @width
+|width @height
+|0030 @scale
+|0010 @delay-1
+|0004 @delay-2
+|000
+
+	@head $2
+	@tail $2
+	@dir $1 &next $1
+	@length $2
+	@wait $1 &from $1
+	@grow $1
+	@food $2 &dir $1 &wait $1
+	@state $1
+
+|100
+
+@On-start ( -> )
+	#b06b .System/r DEO2
+	#806c .System/g DEO2
+	#407c .System/b DEO2
+	;width .scale SFT2 .Screen/width DEO2
+	;height .scale SFT2 .Screen/height DEO2
+	;on-controller .Controller/vector DEO2
+	<init-random>
+	<init>
+	BRK
+
+@on-controller ( -> )
+	( escape ) [ LIT2 1b -Controller/key ] DEI EQU ?<exit>
+	.Controller/button DEI DUP #08 AND ?<exit>
+	[ LIT2 03 -state ] LDZ NEQ ?{ <init>
+		BRK }
+	DUP #10 AND ?&up
+	DUP #20 AND ?&down
+	DUP #40 AND ?&left
+	DUP #80 AND ?&right
+	?&pause
+	( space ) [ LIT2 20 -Controller/key ] DEI EQU ?&pause
+	BRK
+	&up ( -> )
+		[ LIT2 00 -dir/next ] STZ
+		BRK
+	&down ( -> )
+		[ LIT2 02 -dir/next ] STZ
+		BRK
+	&left ( -> )
+		[ LIT2 03 -dir/next ] STZ
+		BRK
+	&right ( -> )
+		[ LIT2 01 -dir/next ] STZ
+		BRK
+	&pause ( -> )
+		.state LDZk #01 EOR SWP STZ
+		BRK
+
+@on-frame ( -> )
+	.state LDZ ?{
+		( | worm )
+		.wait LDZ DUP ?{ POP .wait/from LDZ <step> }
+		#01 SUB .wait STZ
+		( | food )
+		.food/wait LDZk #01 SUB STHk SWP STZ
+		STHr .food LDZ2 .food/dir LDZ step-dir touches-worm #00 EQU ?{ POP #ff <direct-food> }
+		?{
+			.food LDZ2k .food/dir LDZ step-dir ROT STZ2
+			<direct-food> }
+		}
+	<draw>
+	BRK
+
+@<exit> ( -> )
+	#800f DEO
+	BRK
+
+(
+@|game )
+
+@<init> ( -- )
+	#0303 DUP2 .head STZ2
+	.tail STZ2
+	[ LIT2 01 -dir ] STZ
+	[ LIT2 01 -dir/next ] STZ
+	#0001 .length STZ2
+	[ LIT2 02 -grow ] STZ
+	[ LIT2 00 -wait ] STZ
+	[ LIT2 -delay-1 -wait/from ] STZ
+	[ LIT2 00 -state ] STZ
+	<step>
+	<new-food>
+	#0000 .Screen/x DEO2k INC INC DEO2
+	[ LIT2 c0 -Screen/pixel ] DEO
+	;on-frame .Screen/vector DEO2
+	JMP2r
+
+@<step> ( -- )
+	( | head )
+	.dir/next LDZ .dir STZ
+	.head LDZ2 STH2k .dir LDZ STH2r pos-body STA
+	.dir LDZ step-dir .head STZ2
+	( | tail )
+	.grow LDZ ?{
+		.tail LDZ2 step-tile .tail STZ2
+		!&done }
+	.grow LDZk #01 SUB SWP STZ
+	.length LDZ2k INC2 STHk ROT STZ2
+	STHrk #1f AND ?{
+		.wait/from LDZk DUP .delay-2 EQU ?{ #01 SUB }
+		SWP STZ }
+	POPr
+	( | die )
+	&done .head LDZ2 .tail LDZ2 [ LIT2r 0000 ]
+	&l ( -- )
+		EQU2k ?{ INC2r step-tile !&l }
+	POP2 POP2 STH2r INC2 .length LDZ2 NEQ2 ?<die>
+	( | eat )
+	.head LDZ2 .food LDZ2 NEQ2 ?{
+		.grow LDZk INC INC SWP STZ
+		<new-food> }
+	JMP2r
+
+@<die> ( -> )
+	[ LIT2 03 -state ] STZ
+	;&frame .Screen/vector DEO2
+	#0000 .Controller/vector DEO2
+	[ LIT2 00 _&wait ] STR
+	BRK
+	&frame ( -> )
+		[ LIT2 20 &wait $1 ] INCk ,&wait STR
+		EQU [ JMP BRK ] #0000 .Screen/vector DEO2
+		;on-controller .Controller/vector DEO2
+		BRK
+
+@<new-food> ( -- )
+	random .width DIVk MUL SUB random .height DIVk MUL SUB DUP2 touches-worm ?{ .food STZ2
+		!<direct-food> }
+	POP2 !<new-food>
+
+@<direct-food> ( -- )
+	random #03 AND .food/dir STZ
+	random #7f AND #10 ADD .food/wait STZ
+	JMP2r
+
+@dir-x ( dir -- dx )
+	#00 SWP ;&data ADD2 LDA JMP2r
+	&data [ 00 01 00 ff ]
+
+@dir-y ( dir -- dy )
+	#00 SWP ;&data ADD2 LDA JMP2r
+	&data [ ff 00 01 00 ]
+
+@step-tile ( x y -- x y )
+	DUP2 pos-body LDA
+	( >> )
+
+@step-dir ( x y dir -- x y )
+	DUP dir-y ROT ADD .height wrap STH
+	dir-x ADD .width wrap STHr JMP2r
+
+@pos-body ( x y -- tile* )
+	;body ADD2 JMP2r
+
+@touches-worm ( x y -- flag )
+	.tail LDZ2
+	&l ( >_< )
+		NEQ2k ?{ POP2 POP2 #01 JMP2r }
+		DUP2 .head LDZ2 EQU2 ?{ step-tile !&l }
+	POP2 POP2 #00 JMP2r
+
+(
+@|draw )
+
+@<draw> ( -- )
+	<clear-screen>
+	<draw-worm>
+	<draw-food>
+	!<draw-score>
+
+@<clear-screen> ( -- )
+	#0000 .Screen/x DEO2k INC INC DEO2
+	[ LIT2 80 -Screen/pixel ] DEO
+	JMP2r
+
+@<draw-worm> ( -- )
+	[ LIT2 00 -Screen/auto ] DEO
+	( | tail )
+	.head LDZ2 .tail LDZ2 DUP2 <screen-pos>
+	DUP2 pos-body LDA STHk ;tail-chr ROT <draw-worm>/<end>
+	&l ( -- )
+		EQU2k ?{
+			STHrk step-dir DUP2 <screen-pos>
+			DUP2 pos-body LDA DUP #20 SFT STHr ORA #00 SWP ;body-dirs ADD2 LDA #00 SWP ;body-chr ADD2 .Screen/addr DEO2
+			STH
+			[ LIT2 81 -Screen/sprite ] DEO
+			!&l }
+	POPr POP2 POP2
+	( | head )
+	.head LDZ2 <screen-pos>
+	;head-chr .dir LDZ
+	( >> )
+	&<end> ( sprites* dir -- )
+		( sprite mode and offset ) [ LIT2r 8100 ] DUP ?{
+			[ LITr 20 ] ADDr }
+		DUP #02 NEQ ?{
+			[ LITr 10 ] ADDr }
+		#03 NEQ ?{
+			[ LIT2r 1000 ] ORA2r }
+		#00 STHr ADD2 .Screen/addr DEO2
+		STHr .Screen/sprite DEO
+		JMP2r
+
+@<draw-food> ( -- )
+	[ LIT2 00 -Screen/auto ] DEO
+	;food-icn [ LIT2 02 -food/dir ] LDZ GTH ?{ #0018 ADD2 }
+	.Screen/addr DEO2
+	.food LDZ2 <screen-pos>
+	.food/wait LDZ DUP #0f GTH ?{
+		#10 OVR SUB #01 SFT STH
+		.food/dir LDZ DUP dir-x STHrk signedMUL promote .Screen/x DEI2 ADD2 .Screen/x DEO2
+		dir-y STHr signedMUL promote .Screen/y DEI2 ADD2 .Screen/y DEO2
+		DUP #04 AND #10 SFT #00 SWP .Screen/addr DEI2 ADD2 #0008 ADD2 .Screen/addr DEO2 }
+	POP [ LIT2 01 -Screen/sprite ] DEO
+	JMP2r
+
+@<draw-score> ( -- )
+	#0004 .Screen/x DEO2k INC INC DEO2
+	[ LIT2 15 -Screen/auto ] DEO
+	[ LIT2 ff -length ] LDZ2
+	&digit ( >_< )
+		#000a DIV2k STH2k MUL2 SUB2 STH2r ORAk ?&digit
+	POP2
+	&l ( >_< )
+		INCk ?{ POP JMP2r }
+		#40 SFT2 ;digits-icn ADD2 .Screen/addr DEO2
+		[ LIT2 41 -Screen/sprite ] DEO
+		!&l
+
+@<screen-pos> ( x y -- )
+	#00 SWP .scale SFT2 .Screen/y DEO2
+	#00 SWP .scale SFT2 .Screen/x DEO2
+	JMP2r
+
+(
+@|utilities )
+
+@wrap ( x n -- x )
+	GTHk ?&negative
+	NEQk ?{ SUB JMP2r }
+	POP JMP2r
+	&negative ( x n -- x )
+		NIP #01 SUB JMP2r
+
+@signedMUL ( a b -- a*b )
+	EORk #80 AND STH
+	MUL #7f AND STHr ORA JMP2r
+
+@promote ( x -- x* )
+	#ff OVR #07 SFT [ MUL ] SWP JMP2r
+
+@<init-random> .DateTime/second DEI .DateTime/minute DEI #30 SFT EOR ,random/x STR
+	JMP2r
+
+@random ( -- x )
+	[ LIT &x $1 ] DUPk #10 SFT .DateTime/second DEI EOR SWP #06 SFT EOR ,&x STR
+	JMP2r
+
+(
+@|data )
+
+@body-dirs [
+	00 40 00 50 20 10 50 00 00 30 00 20 30 00 40 10 ]
+
+@head-chr [
+	fcee efef efed 02fc 00fc fefe fefe fc00
+	c3bd ffff ffff 663c 7e7e 7e66 4242 3c00
+	3c7e ffff c3bd ffff 003c 7e7e 7e7e 7e7e ]
+
+@body-chr [
+	c3bd ffff c3bd ffff 7e7e 7e7e 7e7e 7e7e
+	ffef efef efef 00ff 00ff ffff ffff ff00
+	1f27 7bfd fe82 fcfe 001f 3f7f 7f7f 7f7f
+	f8e4 debf 7f41 3f7f 00f8 fcfe fefe fefe
+	037d bfdf ddda 04f8 fefe fefe fefc f800
+	c0bd fbf7 b757 201f 7f7f 7f7f 7f3f 1f00 ]
+
+@tail-chr [
+	3f6f efef efef 403f 003f 7f7f 7f7f 3f00
+	003c 7eff c3bd ffff 0000 3c7e 7e7e 7e7e
+	c3bd ffff e77e 3c00 7e7e 7e7e 7e3c 0000 ]
+
+@food-icn [
+	0018 1810 7c10 286c 0018 1814 7810 2c60
+	0018 1850 3c10 680c 0030 3010 7c10 286c
+	0030 3050 3c10 680c 0030 3014 7810 2c60 ]
+
+@digits-icn [
+	007c c6c6 c6c6 c6c6 c6c6 c6c6 c6c6 7c00
+	0018 1878 1818 1818 1818 1818 1818 7e00
+	007c c6c6 0606 060c 1830 60c0 c0c0 fe00
+	007c c606 0606 1c06 0606 0606 06c6 7c00
+	000c 0c1c 1c3c 2c6c 4ccc fe0c 0c0c 3f00
+	00fe c0c0 c0c0 fc06 0606 0606 c6c6 7c00
+	001e 3060 c0c0 fcc6 c6c6 c6c6 c6c6 7c00
+	00fe 0606 0c18 1818 1818 1818 1818 1800
+	003c 6666 666e 3c66 c6c6 c6c6 c6c6 7c00
+	007c c6c6 c6c6 c6c6 7e06 0606 06c6 7c00 ]
+
+@body
+
