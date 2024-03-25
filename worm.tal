@@ -65,7 +65,7 @@
 @on-mouse ( -> )
 	[ LIT &tap $1 ] [ LIT2 00 -Mouse/state ] DEI NEQ DUP ,&tap STR
 	#0101 NEQ2 ?{
-		.Mouse/x DEI2 [ LIT2 &x $2 ] SUB2 .Mouse/y DEI2 [ LIT2 &y $2 ] SUB2 OVR2 abs OVR2 abs GTH2 [ LITr 03 ] ?{ SWP2 DUPr EORr }
+		.Mouse/x DEI2 [ LIT2 &x $2 ] SUB2 .Mouse/y DEI2 [ LIT2 &y $2 ] SUB2 OVR2 abs2 OVR2 abs2 GTH2 [ LITr 03 ] ?{ SWP2 DUPr EORr }
 		POP2 POP #80 AND ?{
 			[ LITr 02 ] ADDr [ LITr 03 ] ANDr }
 		STHr .dir/next STZ }
@@ -234,9 +234,9 @@
 	.Screen/addr DEO2
 	.food LDZ2 <screen-pos>
 	.food/wait LDZ DUP #0f GTH ?{
-		#10 OVR SUB #01 SFT STH
-		.food/dir LDZ DUP dir-x STHrk signedMUL promote .Screen/x DEI2 ADD2 .Screen/x DEO2
-		dir-y STHr signedMUL promote .Screen/y DEI2 ADD2 .Screen/y DEO2
+		#11 OVR SUB #01 SFT STH
+		.food/dir LDZ DUP dir-x STHrk smul promote .Screen/x DEI2 ADD2 .Screen/x DEO2
+		dir-y STHr smul promote .Screen/y DEI2 ADD2 .Screen/y DEO2
 		DUP #04 AND #10 SFT #00 SWP .Screen/addr DEI2 ADD2 #0008 ADD2 .Screen/addr DEO2 }
 	POP [ LIT2 01 -Screen/sprite ] DEO
 	JMP2r
@@ -269,16 +269,15 @@
 	&negative ( x n -- x )
 		NIP #01 SUB JMP2r
 
-@abs ( x* -- |x|* )
-	OVR #80 AND ?{ JMP2r }
-	#0000 SWP2 SUB2 JMP2r
+@abs2 ( x* -- |x|* )
+	OVR #80 AND [ JMP JMP2r ] #ffff EOR2 INC2 JMP2r
 
-@signedMUL ( a b -- a*b )
+@smul ( a b -- a*b )
 	EORk #80 AND STH
 	MUL #7f AND STHr ORA JMP2r
 
 @promote ( x -- x* )
-	#ff OVR #07 SFT [ MUL ] SWP JMP2r
+	#ff OVR #07 SFT MUL SWP JMP2r
 
 @<init-random> .DateTime/second DEI .DateTime/minute DEI #30 SFT EOR ,random/x STR
 	JMP2r
