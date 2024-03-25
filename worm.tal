@@ -1,7 +1,4 @@
 ( worm game )
-		( TO DO: )
-		( sound )
-		( food flickers. fix that )
 
 |00 @System &vector $2 &expansion $2 &wst $1 &rst $1 &metadata $2 &r $2 &g $2 &b $2 &debug $1 &state $1
 |20 @Screen &vector $2 &width $2 &height $2 &auto $1 &pad $1 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1
@@ -10,7 +7,6 @@
 |c0 @DateTime &year $2 &month $1 &day $1 &hour $1 &minute $1 &second $1 &dotw $1 &doty $2 &isdst $1
 |0014 @width
 |width @height
-|0030 @scale
 |0010 @delay-1
 |0004 @delay-2
 |000
@@ -30,8 +26,8 @@
 	#b06b .System/r DEO2
 	#806c .System/g DEO2
 	#407c .System/b DEO2
-	;width .scale SFT2 .Screen/width DEO2
-	;height .scale SFT2 .Screen/height DEO2
+	;width #30 SFT2 .Screen/width DEO2
+	;height #30 SFT2 .Screen/height DEO2
 	;on-controller .Controller/vector DEO2
 	;on-mouse .Mouse/vector DEO2
 	<init-random>
@@ -259,8 +255,8 @@
 		!&l
 
 @<screen-pos> ( x y -- )
-	#00 SWP .scale SFT2 .Screen/y DEO2
-	#00 SWP .scale SFT2 .Screen/x DEO2
+	#0005 SFT2 .Screen/y DEO2
+	#0005 SFT2 .Screen/x DEO2
 	JMP2r
 
 (
